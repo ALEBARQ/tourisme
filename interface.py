@@ -635,7 +635,7 @@ def interface():
      
     # Bouton d'export en powerpoint, masqué pour la version client
     # if st.sidebar.button("Export ppt"):
-    #     export_ppt(generation_generique=False, generation_generique_par_pays=True)
+    #     export_ppt(generation_generique=True, generation_generique_par_pays=False)
         
     # Sélection du type d'analyse générale à effectuer
     types_analyse = {"Mots clés génériques": data[dossiers_source[0]],
@@ -813,7 +813,10 @@ des années précedentes."""
                                            nb_semaines_var * timedelta(7))
                 
                 # Graphique des moyennes comparées
-                titre_var = "a) Valeurs du " + duree_str(date1, date2)
+                """On décale d'une semaine les deux dates,pour l'affichage"""
+                date1bis = date1 + ((nb_semaines_var-1) * timedelta(7))
+                date2bis = date2 + ((nb_semaines_var-1) * timedelta(7))
+                titre_var = "a) Valeurs du " + duree_str(date1bis, date2bis)
                 titre_var += " comparées aux années précédentes."
                 st.header(titre_var)                
                 st.table(moy.T.applymap(lambda x: "{:.1f}".format(x)))
