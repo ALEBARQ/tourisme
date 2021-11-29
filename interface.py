@@ -136,6 +136,19 @@ def donnees_aleatoires(t0=datetime(2017, 6, 1).date(), nb_semaines=4*53):
 
 
 ### II - MISE EN FORME
+
+nom_pays_modif = {
+    'Guadeloupe ': 'OM-Antilles ',
+    'Nouvelle Caledonie ' : 'OM-Pacifique ',
+    'Mayotte ': 'OM-Oc.Indien '
+    }
+
+def changement_nom(pays_nom):
+    if (pays_nom in nom_pays_modif.keys()):
+        return nom_pays_modif[pays_nom]
+    else:
+        return pays_nom
+
 month_str = {
     1: "janvier" , 2: "février"  , 3: "mars", 
     4: "avril"   , 5: "mai"      , 6: "juin", 
@@ -330,7 +343,7 @@ def graph_barres(data, nom_x, nom_y, nom_z, formate_date=True):
     for pays in list(data.columns):
         df = pd.DataFrame({nom_z: data[pays].index, nom_y: data[pays], nom_x: pays})
         data_graph = data_graph.append(df, ignore_index=True)
-
+    
     # Lorsque les valeurs sont des volumes, les dates représentent des 
     # semaines. Elles sont mises sous un format plus lisible.
     # Lorsque les valeurs sont des variations, les dates représentent le début
@@ -414,7 +427,8 @@ def graph_3_ans(data, pays, lissage=False):
     ax.set_ylim(0, 1.1*data[pays].max())
     
     ax.set_ylabel("Indice Google Trends – Base 100")
-    ax.set_title(pays)
+    pays_ = changement_nom(pays)
+    ax.set_title(pays_)
     
     plt.xticks([datetime(a, m+1, 1).date() for m in range(12)], 
            ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -746,6 +760,7 @@ sur des périodes, de respectivement:
                 place = 1
                 for destination in moyennes[nb_semaines_vol].index:
                     nom_classe = destination[:destination.find("(")]
+                    nom_classe = changement_nom(nom_classe)
                     nom_classe += " (" + str(place) + ")"
                     correspond_vol[nom_classe] = destination
                     choix_destinations[destination] = colonnes_volume[index].checkbox(nom_classe)
@@ -795,6 +810,7 @@ des années précedentes."""
                 choix_variations = {}
                 for destination in moyennes[nb_semaines_var].index:
                     nom_classe = destination[:destination.find("(")]
+                    nom_classe = changement_nom(nom_classe)
                     nom_classe += " (" + str(place) + ") "
                     correspond_var[nom_classe] = destination
                     choix_variations[destination] = colonnes_variation[index_var].checkbox(nom_classe)
@@ -813,9 +829,9 @@ des années précedentes."""
                                            nb_semaines_var * timedelta(7))
                 
                 # Graphique des moyennes comparées
-                """On décale d'une semaine les deux dates,pour l'affichage"""
-                date1bis = date1 + ((nb_semaines_var-1) * timedelta(7))
-                date2bis = date2 + ((nb_semaines_var-1) * timedelta(7))
+                """On décale d'une semaine les deux dates, pour l'affichage"""
+                date1bis = date1 + timedelta(7)
+                date2bis = date2 + timedelta(7-1)
                 titre_var = "a) Valeurs du " + duree_str(date1bis, date2bis)
                 titre_var += " comparées aux années précédentes."
                 st.header(titre_var)                
