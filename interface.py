@@ -547,7 +547,7 @@ génériques et des destinations touristiques françaises par espaces
 (littoral, outre-mer, urbain, campagne et montagne) et propose des les
 comparer à la concurrence en Europe.
     """
-    cols = st.beta_columns(2) # number of columns in each row! = 2
+    cols = st.columns(2) # number of columns in each row! = 2
     cols[0].image("logo_Atout_France.png", use_column_width=True)
     cols[1].image("logo_Baudy_Co.png", use_column_width=True) 
     #cols[1].image("https://nicolasbaudy.files.wordpress.com/2020/02/cropped-logo-new-2.png")
@@ -818,13 +818,13 @@ sur des périodes, de respectivement:
                 st.text(txt)
 
                 st.header("a - Le top 6")
-                cols, k = st.beta_columns(3), 0
+                cols, k = st.columns(3), 0
                 for i, k in zip([2, 4, 12],[0,1,2]):
                     cols[k].table(moyennes[i].apply(arrondie_str).head(6))
 
                 if st.checkbox("afficher les valeurs suivantes..."):
                     st.header("b - Les valeurs suivantes")
-                    cols, k = st.beta_columns(3), 0
+                    cols, k = st.columns(3), 0
                     for i, k in zip([2, 4, 12],[0,1,2]):
                         cols[k].table(moyennes[i].apply(arrondie_str).iloc[7:])
 
@@ -905,7 +905,7 @@ des années précedentes."""
                 # peuvent être sélectionnés et sont tous affichés ensemble
                 # dans deux graphiques
                 max_colonnes_var = 5
-                colonnes_variation = st.beta_columns(5)
+                colonnes_variation = st.columns(5)
                 index_var = 0
                 zones = []
                 correspond_var = {}
