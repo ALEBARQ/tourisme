@@ -28,7 +28,7 @@ from pptx.enum.text import PP_ALIGN
 
 # POUR LANCER L'INTERFACE SUR LE WEB, après avoir mis le code sur le dépot 
 # https://github.com/Lee-RoyMannier/tourisme
-# https://share.streamlit.io/lee-roymannier/tourisme/main/interface.py
+# https://share.streamlit.io/ALebarq/tourisme/main/interface.py
 
 # st.set_option('deprecation.showPyplotGlobalUse', False)
 
