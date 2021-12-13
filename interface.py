@@ -14,6 +14,16 @@ from scipy.signal import savgol_filter
 # from io import StringIO
 import os
 
+# import base64
+# from pandas.plotting import table as pd_table
+# from pdflatex import PDFLaTeX
+from pptx import Presentation
+from pptx.util import Inches
+from pptx.util import Pt
+from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.text import PP_ALIGN
+
 import pystan
 from fbprophet import Prophet
 
@@ -740,8 +750,8 @@ def interface():
         introduction()
      
     # Bouton d'export en powerpoint, masqué pour la version client
-    # if st.sidebar.button("Export ppt"):
-    #     export_ppt(generation_generique=True, generation_generique_par_pays=False)
+    if st.sidebar.button("Export ppt"):
+         export_ppt(generation_generique=True, generation_generique_par_pays=True)
         
     # Sélection du type d'analyse générale à effectuer
     types_analyse = {"Mots clés génériques": data[dossiers_source[0]],
@@ -953,7 +963,294 @@ des années précedentes."""
 
         except:
             pass
+
+### EXPORT POWERPOINT
+def export_ppt(generation_generique=True, generation_generique_par_pays=True):
+    def ajout_titre(page, type_analyse="", position=0,
+                    titre="Indice hebdomadaire des tendances de recherches"):
+        """Placement du titre de page. Selon si on on précise un type d'analyse
+        ou pas, il sera composé avec une rubique ou non.
+        Le titre prend par défaut la première position, mais il est également 
+        possible de le placer en dessous d'un autre contenu, avec une position 
+        plus élevée."""
+        shape = page.shapes[position]
+        text_frame = shape.text_frame
+        p = text_frame.paragraphs[0]
+        p.margin_left = 0
+        run = p.add_run()
+        run.text = titre
+        if type_analyse != "":
+            run.text += ' . Rubrique ' + type_analyse
+        font = run.font
+        font.name = 'Calibri'
+        font.size = Pt(18)
+        font.bold = True
+        font.italic = None
+        font.color.rgb = RGBColor(0x11, 0x55, 0xCC)
         
+    def table_ppt(page, data, place_page=0, pos_y=1.5, hauteur=3.5):
+        """Création d'une table"""
+        nb_colonnes, nb_lignes = data.shape[1], data.shape[0]
+        taille = nb_colonnes * 1.5
+        x, y, cx, cy = Inches(0.5), Inches(pos_y), Inches(taille), Inches(hauteur)
+        shape = page.shapes.add_table(nb_lignes+1, nb_colonnes, x, y, cx, cy)       
+        table = shape.table
+        index_col = 0
+        for nom_colonne in data.columns:
+            table.cell(0, index_col).text = nom_colonne
+            index_ligne = 1
+            for valeur in data[nom_colonne].tolist():
+                table.cell(index_ligne, index_col).text = str(valeur)
+                index_ligne += 1
+            index_col += 1
+            
+        def iter_cells(table):
+            for row in table.rows:
+                for cell in row.cells:
+                    yield cell
+        
+        for cell in iter_cells(table):
+            for paragraph in cell.text_frame.paragraphs:
+                paragraph.alignment = PP_ALIGN.CENTER
+                for run in paragraph.runs:
+                    run.font.size = Pt(10)
+                    
+    def calcul_tops(analyses, nb_semaines):
+        """Création d'un tableau des tops volumes, progression et potentiel.
+        Paramètres:
+            analyses: Dictionnaire -> récapitulatif des DataFrames pour tous
+                        les types d'analyses: chiffres par pays ou par destination.
+            nb_semaines: Entier -> nombre de semaines depuis la dernière date
+                            pour effectuer le calcul."""
+        colonnes = ["", "Top Volume", "Top Progression", "Top Potentiel"]
+        tops = pd.DataFrame(columns=colonnes)
+        for type_analyse in analyses:
+            analyse = lecture_donnees(analyses[type_analyse])
+            date_2 = max(analyse.index)
+            date_1 = date_2 - nb_semaines*timedelta(7)
+            top = tops3(analyse, date_1, date_2)
+            volume = ",".join(top.loc['top volume'])
+            progression = ",".join(top.loc['top progression'])
+            potentiel = ",".join(top.loc['top potentiel'])
+            tops.loc[len(tops.index)] = [type_analyse,
+                                         volume,
+                                         progression,
+                                         potentiel]
+        return tops
+
+       
+    data, dossiers_source = acquisition_donnees()
+    
+    
+    # Générique
+    if generation_generique:
+        print("Génération du PowerPoint Générique")
+        presente = Presentation()
+        page_titre = presente.slide_layouts[1]
+        slide = presente.slides.add_slide(page_titre)
+        slide.shapes.add_picture("logo_Atout_France.png",
+                                  Inches(1), Inches(3),
+                                  width = Inches(5))
+        slide.shapes.add_picture("logo_Baudy_Co.png",
+                                  Inches(4.5), Inches(3),
+                                  width = Inches(5))
+        titre = slide.shapes.title
+        titre.text = u"""Observatoire digital des destinations
+        Analyse Générique"""
+        
+        
+        # Page des priorités d'action
+        page_priorite = presente.slides.add_slide(page_titre)
+        
+        date_1, date_2 = "", ""
+        colonnes = ["", "Top Volume", "Top Progression", "Top Potentiel"]
+        top_quinzaine = pd.DataFrame(columns=colonnes)
+        for type_analyse in data['generiques']:
+            analyse = lecture_donnees(data['generiques'][type_analyse])
+            date_2 = max(analyse.index)
+            date_1 = date_2 - 2*timedelta(7)
+            top = tops3(analyse, date_1, date_2)
+            volume = ",".join(top.loc['top volume'])
+            progression = ",".join(top.loc['top progression'])
+            potentiel = ",".join(top.loc['top potentiel'])
+            top_quinzaine.loc[len(top_quinzaine.index)] = [type_analyse, volume,
+                                                            progression, potentiel]
+        top_priorite = top_quinzaine[["", "Top Progression"]]
+        top_priorite.columns = ["", "Priorité d'action"]
+                    
+        titre = "La quinzaine du " + duree_str(date_1, date_2) + " en quelques mots..."
+        ajout_titre(page_priorite, titre=titre, position=0)
+        table_ppt(page_priorite, top_priorite, 1)
+        
+        # Page des tops de la quinzaine
+        page_top = presente.slides.add_slide(page_titre)
+                    
+        titre = "La quinzaine du " + duree_str(date_1, date_2) + " en quelques mots..."
+        ajout_titre(page_top, titre=titre, position=0)
+        table_ppt(page_top, top_quinzaine, top_quinzaine.shape[1],
+                  top_quinzaine.shape[0], 1)
+        
+        # Graphiques d'analyse générale
+        for type_analyse in data['generiques']:
+            page_analyse = presente.slides.add_slide(page_titre)
+            left = top = Inches(0)
+            width = Inches(10.0)
+            height = Inches(0.2)
+            shape = page_analyse.shapes.add_shape(
+                MSO_SHAPE.RECTANGLE, left, top, width, height
+            )
+            
+            ajout_titre(page_analyse, type_analyse)
+        
+            donnees_propres = lecture_donnees(data['generiques'][type_analyse])
+            graphiques = visualisation_volumes(donnees_propres)
+            
+            decalage = 0
+            for type_graphique in graphiques:
+                try:
+                    graph = graphiques[type_graphique]
+                    nom_graph = str(type_analyse) +" "+ str(type_graphique)+".jpg"
+                    image_graph = graph.savefig(nom_graph, dpi=300)
+                    place_image = page_analyse.shapes.add_picture(nom_graph,
+                                                          Inches(decalage),
+                                                          Inches(2),
+                                                          width=Inches(5))
+                    decalage += 5
+                except:
+                    pass
+            # break # Arrêt de boucle pour test
+        presente.save('Rapport analyse generique.pptx')
+            
+    # Génération par pays, en destinations françaises et toutes nationalités
+    if generation_generique_par_pays:
+        print("Génération du PowerPoint par Pays")
+        for dossier in dossiers_source[1:]:
+            for pays in data[dossier]:
+                # Les calculs des meilleurs secteurs trimestriels, puis mensuels
+                # et enfin bi-hebdomadaires, sont effectués. Trois fichiers 
+                # correspondants seront produits.
+                periodes = ("hebdomadaire", "mensuelle", "trimestrielle")
+                nb_semaine = (2, 4, 12)
+                for periodicite, nb_semaines in zip(periodes, nb_semaine):
+                    presente_pays = Presentation()
+                    page_titre = presente_pays.slide_layouts[1]
+                    page_titre_pays = presente_pays.slides.add_slide(page_titre)
+                    left = top = Inches(0)
+                    width = Inches(10.0)
+                    height = Inches(0.2)
+                    barre = page_titre_pays.shapes.add_shape(
+                                MSO_SHAPE.RECTANGLE, left, top, width, height
+                            )
+                    
+                    titre_pays = page_titre_pays.shapes.title
+                    titre_pays.text = f"""Analyse {periodicite} par Pays
+                    {pays}"""
+                    titre = "En quelques mots..."
+                    ajout_titre(page_titre_pays, position=1, titre=titre)
+                    
+                    tops = calcul_tops(data[dossier][pays], 2)
+                    table_ppt(page_titre_pays, tops, pos_y=2.5)
+                    
+                    for type_analyse in data[dossier][pays]:
+                        data_pays = lecture_donnees(data[dossier][pays][type_analyse])
+                        moyennes = {}
+                        date2 = data_pays.index.max()
+                        for i in [2, 4, 12]:
+                            date1 = date2-i*timedelta(7)
+                            moyennes[i] = data_pays[(data_pays.index>date1) & (data_pays.index<=date2)].mean()
+                            moyennes[i] = moyennes[i].sort_values(ascending=False)
+                            moyennes[i].name = "TOP "+str(i)+" SEMAINES"
+                        date1 = date2 - nb_semaines*timedelta(7)
+                        zones = list(moyennes[2].head(6).index)
+                        moy = moyennes_annuelles(data_pays[zones], date2, nb_semaines*timedelta(7))
+                        var = variations_annuelles(data_pays[zones], date2, nb_semaines*timedelta(7))
+                        
+                        # Graphiques en barres des moyennes et variations
+                        for analyse, nom_analyse in zip((moy, var), ("Moyenne", "Variation")):
+                            page_analyse = presente_pays.slides.add_slide(page_titre)
+                            left = top = Inches(0)
+                            width = Inches(10.0)
+                            height = Inches(0.2)
+                            barre = page_analyse.shapes.add_shape(
+                                        MSO_SHAPE.RECTANGLE, left, top, width, height
+                                    )
+                            ajout_titre(page_analyse, position=0, type_analyse=type_analyse)
+                            nom_x, nom_z = u"Régions", "Annees"
+                            nom_y = nom_analyse + " de l'indice Google Trends"
+                            graph = graph_barres(analyse, nom_x, nom_y, nom_z,
+                                                    formate_date=False)
+                            nom_graph =  " ".join([nom_analyse,periodicite,
+                                                    str(type_analyse),str(pays)])+".jpg"
+                            image_graph = graph.savefig(nom_graph, dpi=250,
+                                                        bbox_inches="tight")
+                            plt.clf()
+                            plt.cla()
+                            plt.close('all')
+                            del graph
+                            page_analyse.shapes.add_picture(nom_graph,
+                                            Inches(1),
+                                            Inches(1.3),
+                                            width=Inches(8))
+                            
+                        # Graphique en ligne
+                        page_analyse = presente_pays.slides.add_slide(page_titre)
+                        left = top = Inches(0)
+                        width = Inches(10.0)
+                        height = Inches(0.2)
+                        barre = page_analyse.shapes.add_shape(
+                                    MSO_SHAPE.RECTANGLE, left, top, width, height
+                                )
+                        ajout_titre(page_analyse, position=0, type_analyse=type_analyse)
+                        cale_gauche = 1.8
+                        cale_haut = 1.3
+                        decalage_x = cale_gauche
+                        decalage_y = cale_haut
+                        for colonne in moy.columns:
+                            graph = graph_3_ans(data_pays, colonne)
+                            nom_graph = " ".join(("Evolution",periodicite, pays,
+                                                  str(colonne))) + ".jpg"
+                            image_graph = graph.savefig(nom_graph, dpi=250,
+                                                        bbox_inches="tight")
+                            plt.clf()
+                            plt.cla()
+                            plt.close('all')
+                            del graph
+                            page_analyse.shapes.add_picture(nom_graph,
+                                                Inches(decalage_x),
+                                                Inches(decalage_y),
+                                                width=Inches(3))
+                            if decalage_x > cale_gauche:
+                                decalage_x = cale_gauche
+                                decalage_y += 2
+                            else:
+                                decalage_x += 3.3
+                    presente_pays.save(f'Rapport analyse {dossier} {periodicite} {pays}.pptx')
+                    # break # Arrêt de boucle pour test
+                # break # Arret de boucle pour test
+        
+
+### VI - TESTS UNITAIRES
+test = False
+
+if test:
+    print("lecture des données:")
+    try:
+        fichier = "../FR-IT-NL-GB-US-BE-CH-DE-ES_Generique-Avion-Hebdo_20210621_1048.csv"
+        data = lecture_donnees(fichier)
+    except:
+        data = donnees_aleatoires(t0=datetime(2017, 6, 1), nb_semaines=4*53)
+    print(data)
+    
+    print("\ntest d'écriture des noms de pays à patir des codes iso:")
+    for x in ['FR', 'BE', 'IT', 'CH', 'NL', 'US', 'GB']:
+        print("\tcode iso:", x, "=> nom du pays:", x)
+
+    print("\ntest d'écriture d'une durée:")
+    date1 = datetime(2021, 5,  9).date()
+    date2 = datetime(2021, 5, 30).date()
+    print("\tdu", date1, " au ", date2, ": ", duree_str(date1, date2))
+
+
 
 ### VII - PROGRAMME PRINCIPAL
 interface()
