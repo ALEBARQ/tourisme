@@ -750,8 +750,8 @@ def interface():
         introduction()
      
     # Bouton d'export en powerpoint, masqué pour la version client
-    if st.sidebar.button("Export ppt"):
-         export_ppt(generation_generique=True, generation_generique_par_pays=True)
+    #if st.sidebar.button("Export ppt"):
+         #export_ppt(generation_generique=True, generation_generique_par_pays=True)
         
     # Sélection du type d'analyse générale à effectuer
     types_analyse = {"Mots clés génériques": data[dossiers_source[0]],
