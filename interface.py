@@ -465,7 +465,7 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
     a = max(data.index).year
     j1 = data[data.index >= datetime(a, 1, 1).date()].index[0]
     jlast = data[data.index >= datetime(a, 1, 1).date()].index[-1]
-    st.write(data[pays])
+    #st.write(data[pays])
 
     # Si "prevision" est cochée on fait la prédiction 
     if prevision == True : 
