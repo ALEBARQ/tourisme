@@ -77,6 +77,7 @@ def convertion_nom_pays(correspondances_pays, code_iso):
     except: 
         return code_iso
 
+
 def acquisition_donnees():
     # Code iso des pays traduits en noms français courts à partir d'un fichier
     pays = pd.read_csv("iso-pays.csv", header=None)
@@ -422,7 +423,11 @@ def prevision_prophet(data,pays,nb_semaines = 4):
     
     date_fin = data.index[-1]
     data_index = data[pays].index.name
-    data_cast = data.reset_index()[[data_index,pays]]
+    #if lissage:
+    data_cast = data.reset_index()[[data_index,'lisse']]
+    #else:
+        #data_cast = data.reset_index()[[data_index,pays]]
+
     data_cast.columns = ['ds','y']
     
     
@@ -431,9 +436,9 @@ def prevision_prophet(data,pays,nb_semaines = 4):
                 weekly_seasonality=False,
                 yearly_seasonality=True,
                 growth='linear',
-                changepoint_prior_scale = 0.1,
-                seasonality_prior_scale = 0.1,
-                changepoint_range=0.85)
+                changepoint_prior_scale = 0.1, # Increasing it will make the trend more flexible
+                seasonality_prior_scale = 1,
+                changepoint_range=0.80)
     
     m = m.fit(data_cast)
     
@@ -449,8 +454,9 @@ def prevision_prophet(data,pays,nb_semaines = 4):
     result.set_index(data_index,inplace = True)
     result[result < 0] = 0
     result.index = result.index.map(lambda x: x.date())
-    return result
     
+    return result
+
 def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
     """Lissage avec le filtre de Savitzky-Golay . Il utilise les moindres 
     carrés pour régresser une petite fenêtre de vos données sur un polynôme, 
@@ -468,28 +474,29 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
     #st.write(data[pays])
 
     # Si "prevision" est cochée on fait la prédiction 
+    
+    if lissage and not prevision :
+        data['lisse'] = savgol_filter(data[pays].values, 15, 3)
+    
     if prevision == True : 
+        data['lisse'] = savgol_filter(data[pays].values, 15, 3)
         data_predict = prevision_prophet(data,pays,nb_semaines = nb_semaines)
         annee_fin = data_predict.index[-1].year
         
         data_predict = data_predict[data_predict.index >= jlast]
-        data_predict.iloc[0] = data[pays].iloc[-1]
-        taille_predict = len(data_predict)
-        
-        
         if lissage:
-            # on fait le raccord avec les vrais valeurs précédentes pour le lissage
-            data_lisse = np.concatenate((data[pays].values[:-1],data_predict[pays].values)\
-                                        ,axis = 0 )
-            data_predict['lisse'] = savgol_filter(data_lisse, 15, 3)[-taille_predict:]
-
+            data_predict.iloc[0] = data['lisse'].iloc[-1]
+        else : 
+            data_predict.iloc[0] = data[pays].iloc[-1]
+        #st.dataframe(data_predict)
+        taille_predict = len(data_predict)
+ 
         for i in range(annee_fin - jlast.year + 1):
             
             date1, date2 = datetime(a+i, 1, 1).date(), datetime(a+i, 12, 31).date()
             data_ = data_predict[(data_predict.index>=date1) & (data_predict.index<=date2)]
             if i == 0:
-                label_ = 'Prévision'
-                label_lisse = 'Prévision lissée'
+                label_ = 'Prévision lisse'
                 dates = [jlast+ d*timedelta(days=7) for d in range(len(data_))]
             else:
                 label_ = None
@@ -497,14 +504,10 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
                 dates = [j1+ d*timedelta(days=7) for d in range(len(data_))]
                 
             y = data_[pays]
-
-            if lissage:
-                ylis = data_['lisse']
-                ax.plot(dates[1:], ylis[1:], 'o-', color='red', label=label_lisse)
-                ax.plot(dates, y, 'o-', color='red', label=label_, alpha=0.3)
-                
-            else:
-                ax.plot(dates, y, 'o-', color='red', label=label_)
+            
+            ax.plot(dates, y, 'o-', color='red', label=label_)
+    
+    
             
     for i in range(3):
         date1, date2 = datetime(a-i, 1, 1).date(), datetime(a-i, 12, 31).date()
@@ -516,8 +519,9 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
         ligne2 = ('o:'  if i==0 else '.:')
         c = sns.color_palette("YlGnBu")[-i*2-1]
         y = data_[pays].values
+        
         if lissage:
-            ylis = savgol_filter(y, 15, 3)
+            ylis = data_['lisse'].values
             ax.plot(dates, ylis, ligne, color=c, label=str(a-i)+u" lissé")
             ax.plot(dates, y, ligne2, color=c, label=str(a-i), alpha=0.3)
         else:
