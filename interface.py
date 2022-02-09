@@ -476,10 +476,10 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
     # Si "prevision" est cochée on fait la prédiction 
     
     if lissage and not prevision :
-        data['lisse'] = savgol_filter(data[pays].values, 15, 3)
+        data['lisse'] = savgol_filter(data[pays].values, 7, 3, mode='mirror')
     
     if prevision == True : 
-        data['lisse'] = savgol_filter(data[pays].values, 15, 3)
+        data['lisse'] = savgol_filter(data[pays].values, 7, 3, mode='mirror')
         data_predict = prevision_prophet(data,pays,nb_semaines = nb_semaines)
         annee_fin = data_predict.index[-1].year
         
