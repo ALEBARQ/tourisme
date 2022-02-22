@@ -849,8 +849,8 @@ sur des périodes, de respectivement:
                 #     commentaire_2 = st.text_area("Commentaire", "")
            
             ### 2 - LES VOLUMES
-            if st.sidebar.checkbox("2 - Les volumes des 3 dernières années"):
-                st.title("2 - Les volumes des 3 dernières années")
+            if st.sidebar.checkbox("2 - Les volumes des 4 dernières années"):
+                st.title("2 - Les volumes des 4 dernières années")
                 # Le type d'analyse peut être traduit en un nombre de semaines
                 classements = {'2 semaines': 2,
                                 '4 semaines': 4,
