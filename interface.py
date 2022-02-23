@@ -520,13 +520,17 @@ def graph_3_ans(data, pays, lissage=False, prevision = True, nb_semaines = 0):
         #c = sns.color_palette("YlGnBu")[-i*2-1]
         c = sns.color_palette("deep")[-i]
         y = data_[pays].values
-        
+        # épaisseur différente pour 2019
+        width=1.5
+        if i == 3 :
+            width=2.4
+            
         if lissage:
             ylis = data_['lisse'].values
-            ax.plot(dates, ylis, ligne, color=c, label=str(a-i)+u" lissé")
-            ax.plot(dates, y, ligne2, color=c, label=str(a-i), alpha=0.3)
+            ax.plot(dates, ylis, ligne, color=c, label=str(a-i)+u" lissé",linewidth=width)
+            ax.plot(dates, y, ligne2, color=c, label=str(a-i), alpha=0.3,linewidth=width)
         else:
-            ax.plot(dates, y, ligne, color=c, label=str(a-i))
+            ax.plot(dates, y, ligne, color=c, label=str(a-i),linewidth=width)
     
     # Les différentes semaines sont données en légende
     ax.legend(fancybox=True, shadow=False, ncol=1)
