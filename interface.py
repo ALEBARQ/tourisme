@@ -454,8 +454,8 @@ def prevision_prophet(data,pays,nb_semaines = 4):
     result.set_index(data_index,inplace = True)
     result[result < 0] = 0
     result.index = result.index.map(lambda x: x.date())
-    st.write(result[pays][-nb_semaines])
-    st.write(data_cast['y'].iloc[-1])
+    #st.write(result[pays][-nb_semaines])
+    #st.write(data_cast['y'].iloc[-1])
     try :
         last_val = data_cast['y'].iloc[-1]
         first_pred = result[pays][-nb_semaines]
@@ -469,7 +469,7 @@ def prevision_prophet(data,pays,nb_semaines = 4):
                 delta = last_val - 0.1*last_val - first_pred
             
             result[pays] = result[pays] + delta
-            st.write(delta)
+            #st.write(delta)
 
                 
     except :
