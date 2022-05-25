@@ -77,7 +77,7 @@ def convertion_nom_pays(correspondances_pays, code_iso):
     except: 
         return code_iso
 
-
+@st.cache(persist=True)
 def acquisition_donnees():
     # Code iso des pays traduits en noms français courts à partir d'un fichier
     pays = pd.read_csv("iso-pays.csv", header=None)
