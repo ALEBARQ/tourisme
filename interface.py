@@ -29,9 +29,6 @@ import pystan
 from fbprophet import Prophet
 
 
-
-
-
 # import base64
 # from pandas.plotting import table as pd_table
 # from pdflatex import PDFLaTeX
