@@ -417,6 +417,7 @@ def graph_barres(data, nom_x, nom_y, nom_z, formate_date=True):
 
     return fig
 
+@st.cache()
 def prevision_prophet(data,pays,nb_semaines = 4):
     
     date_fin = data.index[-1]
